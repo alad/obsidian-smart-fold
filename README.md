@@ -1,30 +1,94 @@
 # Obsidian Smart Fold
 
-Run **Obsidian Smart Fold: Smart toggle fold**, or assign it a shortcut in Settings → Hotkeys. The plugin does not override Obsidian commands or assign hotkeys.
+**Fold a section from wherever you’re writing. Unfold it to pick up where you left off.**
 
-## Cursor memory
+Obsidian’s built-in toggle-fold command works on the current line. Smart Fold finds the heading containing your cursor, folds that section, and remembers your exact cursor position. Unfold it with the same command to return to that line and column.
 
-- Folding saves the cursor position separately for that heading, then moves the cursor to the heading.
-- Unfolding with Smart toggle fold restores that heading’s saved cursor position and consumes that bookmark. The next fold saves your new position.
-- Nested and sibling headings have independent bookmarks. Unfolding a parent leaves its folded children folded.
-- Bookmarks follow edits that insert or remove text before them. Deleted headings lose their bookmarks, and destinations outside the current section are ignored.
-- With no saved bookmark (for example, a heading folded using the gutter), unfolding keeps the current cursor position.
-- Each open file has its own memory, shared across its tabs. Switching tabs or renaming a file preserves bookmarks. Closing the last tab for a file clears its memory; reopening it starts fresh. Disabling/reloading the plugin or quitting Obsidian also clears memory. Nothing is saved to disk.
+## Example
 
-The live editor syntax tree identifies document headings, including Setext headings, while ignoring code. Before the first heading, the command shows a notice. Note text is never rewritten.
+You’re editing a bullet under `## Tasks`:
 
-No build step or dependencies to install. Access to the editor CodeMirror instance is an internal API; an Obsidian update may require a compatibility adjustment.
+```markdown
+# Project
+
+## Tasks
+- Review the proposal
+- Write feedback ← cursor here
+```
+
+Run **Smart toggle fold**:
+
+1. The Tasks section collapses.
+2. Your cursor moves to `## Tasks`.
+3. Run it again: Tasks expands and your cursor returns to where you were writing feedback.
+
+## Each heading remembers its own position
+
+Nested sections work independently. Fold a subsection, move up into its parent section, and fold that too. Unfolding the parent returns you to the position saved for the parent, while the subsection stays folded. Unfold the subsection to return to its saved position.
+
+Cursor memory also works across open files:
+
+- Switching tabs preserves saved positions.
+- Inserting or removing text above a saved position moves the bookmark with it.
+- Renaming an open file preserves its bookmarks.
+- Closing a file’s last tab clears its memory.
+- Quitting Obsidian or disabling/reloading the plugin clears all memory.
+
+Everything stays in memory—nothing is written into your notes or saved between sessions.
 
 ## Install with BRAT
 
-After the first release is published, install BRAT from Obsidian’s Community plugins, add `alad/obsidian-smart-fold`, and select the latest version. Public repository downloads normally need no GitHub token.
+1. Install and enable **BRAT** from Obsidian’s Community plugins.
+2. In BRAT, choose **Add a beta plugin for testing**.
+3. Enter `alad/obsidian-smart-fold` and select the latest version.
+4. Enable **Obsidian Smart Fold** if it isn’t already enabled.
 
-For manual installation, download `main.js` and `manifest.json` from a release into `.obsidian/plugins/obsidian-smart-fold/`, restart Obsidian, and enable the plugin.
+This is a public repository, so a GitHub token normally isn’t needed.
 
-## Development and releases
+### Manual installation
 
-`main.js` is the source and the installable file; no build is required. Obsidian supplies the imported modules at runtime. This plugin uses internal editor APIs and has been tested in desktop Obsidian; mobile behavior is not yet verified.
+Download `main.js` and `manifest.json` from the [latest release](https://github.com/alad/obsidian-smart-fold/releases/latest). Place both files inside your vault at:
 
-Run `node --check main.js` for syntax validation. `tests/obsidian-integration.js` is an integration test to execute with Obsidian's developer evaluation command in a disposable test vault, with the plugin enabled. It creates temporary notes and tabs, tests cursor restoration across files, and deletes only its own test notes afterward.
+```text
+.obsidian/plugins/obsidian-smart-fold/
+```
 
-For a release, update the manifest version and changelog, run the integration test, then manually run the **Prepare release** workflow. It creates a draft release with the installable files attached. Review the draft before publishing it for BRAT users.
+Restart Obsidian and enable the plugin under **Settings → Community plugins**.
+
+## Use it
+
+Run **Obsidian Smart Fold: Smart toggle fold** from the command palette.
+
+For quicker access, go to **Settings → Hotkeys**, search for **Smart toggle fold**, and assign your preferred shortcut.
+
+The plugin adds its own command. It does not change Obsidian’s built-in fold command or assign a shortcut automatically.
+
+## Behavior and limitations
+
+- Works from paragraphs, bullet lists, and code blocks within a heading’s section.
+- Recognizes Markdown headings, including underlined Setext headings, and ignores heading-like text inside code blocks.
+- Before the first heading, it shows a notice and leaves the cursor where it is.
+- If a heading has no saved position—for example, you folded it using the gutter—unfolding keeps the current cursor position.
+- Cursor restoration applies when unfolding with **Smart toggle fold**.
+- Updating the plugin reloads it and clears its temporary cursor memory.
+- Tested in desktop Obsidian. Mobile behavior has not yet been verified.
+
+## Development
+
+`main.js` is both the source and the installable plugin file. No build step is required; Obsidian provides the imported modules at runtime.
+
+Check syntax with:
+
+```sh
+node --check main.js
+```
+
+The integration test in `tests/obsidian-integration.js` runs inside Obsidian with the plugin enabled. Use a disposable test vault. It creates temporary notes and tabs, checks nested folding and cursor memory across files, and cleans up its test notes afterward.
+
+The plugin accesses Obsidian’s internal editor interface, so future Obsidian updates may require compatibility changes.
+
+### Releases
+
+Update the manifest version and changelog, run the integration test, then manually run the **Prepare release** workflow on GitHub. It creates a draft release with the installable files attached.
+
+Review and publish the draft to make the version available through BRAT.
