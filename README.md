@@ -1,94 +1,32 @@
 # Obsidian Smart Fold
 
-**Fold a section from wherever you’re writing. Unfold it to pick up where you left off.**
+**Fold from where you’re writing. Unfold to return there.**
 
-Obsidian’s built-in toggle-fold command works on the current line. Smart Fold finds the heading containing your cursor, folds that section, and remembers your exact cursor position. Unfold it with the same command to return to that line and column.
+Smart toggle fold collapses the nearest foldable list item or heading containing your cursor. A bullet with children targets itself; a leaf bullet targets its nearest foldable parent. When you unfold, the cursor returns to its saved line and column.
 
-## Example
+- Supports headings, nested bullets, numbered lists, and task lists.
+- Remembers positions independently for each section across open files.
+- Keeps child sections folded when you unfold their parent.
+- Preserves bookmarks across edits, tab switches, and file renames.
+- Clears a file’s memory when its last tab closes; restarting or reloading the plugin clears all memory.
+- Adds its own command without changing built-in commands, shortcuts, or note contents.
 
-You’re editing a bullet under `## Tasks`:
+## Install and use
 
-```markdown
-# Project
+1. Install **BRAT** from Obsidian’s Community plugins.
+2. Add `alad/obsidian-smart-fold` in BRAT and select the latest version. A GitHub token normally isn’t needed.
+3. Enable **Obsidian Smart Fold**, then assign **Smart toggle fold** a shortcut under **Settings → Hotkeys**, or run it from the command palette.
 
-## Tasks
-- Review the proposal
-- Write feedback ← cursor here
-```
+For manual installation, download `main.js` and `manifest.json` from the [latest release](https://github.com/alad/obsidian-smart-fold/releases/latest) into `.obsidian/plugins/obsidian-smart-fold/`, restart Obsidian, and enable the plugin.
 
-Run **Smart toggle fold**:
+Cursor restoration works through **Smart toggle fold**. With no saved position, unfolding keeps the cursor where it is. With no containing foldable section, the command shows a notice.
 
-1. The Tasks section collapses.
-2. Your cursor moves to `## Tasks`.
-3. Run it again: Tasks expands and your cursor returns to where you were writing feedback.
-
-## Each heading remembers its own position
-
-Nested sections work independently. Fold a subsection, move up into its parent section, and fold that too. Unfolding the parent returns you to the position saved for the parent, while the subsection stays folded. Unfold the subsection to return to its saved position.
-
-Cursor memory also works across open files:
-
-- Switching tabs preserves saved positions.
-- Inserting or removing text above a saved position moves the bookmark with it.
-- Renaming an open file preserves its bookmarks.
-- Closing a file’s last tab clears its memory.
-- Quitting Obsidian or disabling/reloading the plugin clears all memory.
-
-Everything stays in memory—nothing is written into your notes or saved between sessions.
-
-## Install with BRAT
-
-1. Install and enable **BRAT** from Obsidian’s Community plugins.
-2. In BRAT, choose **Add a beta plugin for testing**.
-3. Enter `alad/obsidian-smart-fold` and select the latest version.
-4. Enable **Obsidian Smart Fold** if it isn’t already enabled.
-
-This is a public repository, so a GitHub token normally isn’t needed.
-
-### Manual installation
-
-Download `main.js` and `manifest.json` from the [latest release](https://github.com/alad/obsidian-smart-fold/releases/latest). Place both files inside your vault at:
-
-```text
-.obsidian/plugins/obsidian-smart-fold/
-```
-
-Restart Obsidian and enable the plugin under **Settings → Community plugins**.
-
-## Use it
-
-Run **Obsidian Smart Fold: Smart toggle fold** from the command palette.
-
-For quicker access, go to **Settings → Hotkeys**, search for **Smart toggle fold**, and assign your preferred shortcut.
-
-The plugin adds its own command. It does not change Obsidian’s built-in fold command or assign a shortcut automatically.
-
-## Behavior and limitations
-
-- Works from paragraphs, bullet lists, and code blocks within a heading’s section.
-- Recognizes Markdown headings, including underlined Setext headings, and ignores heading-like text inside code blocks.
-- Before the first heading, it shows a notice and leaves the cursor where it is.
-- If a heading has no saved position—for example, you folded it using the gutter—unfolding keeps the current cursor position.
-- Cursor restoration applies when unfolding with **Smart toggle fold**.
-- Updating the plugin reloads it and clears its temporary cursor memory.
-- Tested in desktop Obsidian. Mobile behavior has not yet been verified.
+Tested in desktop Source mode and Live Preview; mobile is not yet verified. The plugin uses internal editor APIs, so future Obsidian updates may require compatibility changes.
 
 ## Development
 
-`main.js` is both the source and the installable plugin file. No build step is required; Obsidian provides the imported modules at runtime.
+`main.js` is the source and installable file; no build is required. Check syntax with `node --check main.js`.
 
-Check syntax with:
+Before pushing changes, run both scripts in `tests/` through Obsidian’s developer evaluation command in a disposable test vault with the plugin enabled. They create and clean up temporary notes and test folding, cursor restoration, and memory across files.
 
-```sh
-node --check main.js
-```
-
-The integration test in `tests/obsidian-integration.js` runs inside Obsidian with the plugin enabled. Use a disposable test vault. It creates temporary notes and tabs, checks nested folding and cursor memory across files, and cleans up its test notes afterward.
-
-The plugin accesses Obsidian’s internal editor interface, so future Obsidian updates may require compatibility changes.
-
-### Releases
-
-Update the manifest version and changelog, run the integration test, then manually run the **Prepare release** workflow on GitHub. It creates a draft release with the installable files attached.
-
-Review and publish the draft to make the version available through BRAT.
+To release, update `manifest.json` and `CHANGELOG.md`, then run the **Prepare release** GitHub workflow. Review and publish its draft release to make the update available through BRAT.

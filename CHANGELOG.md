@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- Fold the nearest enclosing list item, including nested bullets, numbered lists, and task lists.
+- Restore independent cursor positions for list parents and headings.
+- Add Source mode and Live Preview integration tests for lists.
+
 ## 1.3.0
 
 First public release.

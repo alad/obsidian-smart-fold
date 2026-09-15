@@ -30,7 +30,7 @@ module.exports = class ObsidianSmartFold extends Plugin {
     this.addCommand({
       id: 'smart-toggle-fold',
       name: 'Smart toggle fold',
-      editorCallback: (editor, view) => this.toggleHeading(editor, view)
+      editorCallback: (editor, view) => this.toggleFold(editor, view)
     });
   }
 
@@ -83,34 +83,49 @@ module.exports = class ObsidianSmartFold extends Plugin {
     this.mapMemory(memory, ChangeSet.of({ from, to: oldEnd, insert: after.slice(from, newEnd) }, before.length), doc);
   }
 
-  findHeading(editor) {
+  findTarget(editor) {
     const state = editor.cm?.state;
     if (!state) return null;
-    const cursorLine = editor.getCursor('head').line;
-    const position = state.doc.line(cursorLine + 1).to;
-    // Parse the live buffer so newly typed headings work without waiting for cache updates.
-    const tree = ensureSyntaxTree(state, position, 100);
+    const cursorLine = state.doc.line(editor.getCursor('head').line + 1);
+    // Parse the live buffer so newly typed lists and headings work immediately.
+    const tree = ensureSyntaxTree(state, cursorLine.to, 100);
     if (!tree) return null;
-    let heading = null;
+    const candidates = new Set();
     tree.iterate({
-      to: position,
+      to: cursorLine.to,
       enter(node) {
-        if (!/^(ATXHeading[1-6]|SetextHeading[12])$/.test(node.name) &&
-            !/(?:^|_)HyperMD-header-[1-6](?:_|$)/.test(node.name)) return;
-        // Only document headings; ignore heading-like content in quotes and code.
-        if (node.node.parent?.name !== 'Document') return false;
-        const line = state.doc.lineAt(node.from).number - 1;
-        if (line <= cursorLine) heading = line;
-        return false;
+        const heading = /^(ATXHeading[1-6]|SetextHeading[12])$/.test(node.name) ||
+          /(?:^|_)HyperMD-header-[1-6](?:_|$)/.test(node.name);
+        const list = node.name === 'ListItem' ||
+          /(?:^|_)HyperMD-list-line(?:_|$)/.test(node.name);
+        if (!heading && !list) return;
+        if (heading && node.node.parent?.name !== 'Document') return false;
+        const line = state.doc.lineAt(node.from);
+        // Exclude quote prefixes and continuation lines without a list marker.
+        if (list && !/^\s*(?:[-+*]|\d+[.)])(?:[ \t]+|$)/.test(line.text)) return;
+        if (line.from <= cursorLine.from) candidates.add(line.number);
       }
     });
-    return heading;
+    // Use Obsidian's actual fold ranges, so siblings and text outside a list
+    // cannot accidentally target a preceding list item.
+    for (const number of [...candidates].sort((a, b) => b - a)) {
+      const line = state.doc.line(number);
+      let folded = null;
+      foldedRanges(state).between(line.from, line.to, (from, to) => {
+        if (from >= line.from && from <= line.to) folded = { from, to };
+      });
+      const range = folded || foldable(state, line.from, line.to);
+      if (range && (number === cursorLine.number || cursorLine.to <= range.to)) {
+        return { line, range, folded };
+      }
+    }
+    return null;
   }
 
-  toggleHeading(editor, view) {
-    const line = this.findHeading(editor);
-    if (line === null) {
-      new Notice('No containing heading at the cursor.');
+  toggleFold(editor, view) {
+    const target = this.findTarget(editor);
+    if (!target) {
+      new Notice('No containing foldable heading or list item at the cursor.');
       return;
     }
     const cm = editor.cm;
@@ -123,11 +138,7 @@ module.exports = class ObsidianSmartFold extends Plugin {
     }
     this.syncMemory(memory, cm.state.doc);
     const positions = memory.positions;
-    const heading = cm.state.doc.line(line + 1);
-    let folded = null;
-    foldedRanges(cm.state).between(heading.from, heading.to, (from, to) => {
-      if (from >= heading.from && from <= heading.to) folded = { from, to };
-    });
+    const { line: heading, range, folded } = target;
     if (folded) {
       const saved = positions.get(heading.from);
       // Discard stale destinations outside this heading's current section.
@@ -141,8 +152,6 @@ module.exports = class ObsidianSmartFold extends Plugin {
       positions.delete(heading.from);
       return;
     }
-    const range = foldable(cm.state, heading.from, heading.to);
-    if (!range) return;
     positions.set(heading.from, {
       headingFrom: heading.from,
       headingTo: heading.to,

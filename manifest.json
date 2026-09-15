@@ -1,9 +1,9 @@
 {
   "id": "obsidian-smart-fold",
   "name": "Obsidian Smart Fold",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "minAppVersion": "1.5.0",
-  "description": "Smart heading folding with per-heading cursor memory for open files.",
+  "description": "Fold the nearest list item or heading and restore your cursor when unfolding.",
   "author": "alad",
   "isDesktopOnly": false,
   "authorUrl": "https://github.com/alad"
